@@ -17,6 +17,7 @@ from __future__ import annotations
 import numpy as np
 
 from pyscf import ao2mo
+from pyscf.fci import spin_op
 
 from qiskit_nature.second_q.algorithms import GroundStateSolver
 from qiskit_nature.second_q.hamiltonians import ElectronicEnergy
@@ -255,3 +256,23 @@ class QiskitSolver:
             fake_ci_vec.density.beta_alpha["++--"], index_order=IndexType.PHYSICIST
         )
         return (self.make_rdm1s(fake_ci_vec, norb, nelec), (dm2_aa, dm2_ba.T, dm2_bb))
+
+    def spin_square(
+        self, fake_ci_vec: QiskitSolver, norb: int, nelec: int | tuple[int, int]
+    ) -> tuple[float, float]:
+        """Computes the spin-square value
+
+        Args:
+            fake_ci_vec: the reference to the ``QiskitSolver``.
+            norb: the number of (active) orbitals.
+            nelec: the number of (active) electrons. (currently ignored!)
+
+        Returns:
+            Spin-square value and spin multiplicity.
+        """
+        mo_coeff = [np.eye(norb)] * 2
+        ovlp = 1
+        dm1, dm2 = self.make_rdm12s(self, fake_ci_vec, norb, nelec)
+        dm1a, dm1b = dm1
+        dm2aa, dm2ab, dm2bb = dm2
+        return spin_op.spin_square_general(dm1a, dm1b, dm2aa, dm2ab, dm2bb, mo_coeff, ovlp)
